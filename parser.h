@@ -145,7 +145,20 @@ struct command
 };
 
 extern struct command op[MAX_COMMANDS];
+//Code generator headers
+int num_frames;
+char name[128];
 
+struct vary_node {
+  char name[128];
+  double value;
+  struct vary_node *next;
+};
+
+void print_knobs();
+void process_knobs();
+void first_pass();
+struct vary_node ** second_pass();
 void print_pcode();
 void my_main();
 

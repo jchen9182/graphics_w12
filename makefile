@@ -3,8 +3,8 @@ CFLAGS = -g
 LDFLAGS = -lm
 CC = gcc
 
-run: parser
-	./mdl face.mdl
+run: parser simple_anim.mdl
+	./mdl simple_anim.mdl
 
 parser: lex.yy.c y.tab.c y.tab.h $(OBJECTS)
 	$(CC) -o mdl $(CFLAGS) lex.yy.c y.tab.c $(OBJECTS) $(LDFLAGS)
@@ -48,4 +48,4 @@ clean:
 	rm -rf mdl.dSYM
 	rm mdl
 	rm *.o
-	rm *.png
+	rm anim/*.png

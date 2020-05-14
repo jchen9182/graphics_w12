@@ -39,7 +39,59 @@
 #include "stack.h"
 #include "gmath.h"
 
+/*======== void first_pass() ==========
+    Inputs:
+    Returns:
+    Checks the op array for any animation commands
+    (frames, basename, vary)
+    Should set num_frames and basename if the frames
+    or basename commands are present
+    If vary is found, but frames is not, the entire
+    program should exit.
+    If frames is found, but basename is not, set name
+    to some default value, and print out a message
+    with the name being used.
+  ====================*/
+void first_pass() {
+    //These variables are defined at the bottom of symtab.h
+    extern int num_frames;
+    extern char name[128];
+
+}
+
+/*======== struct vary_node ** second_pass() ==========
+    Inputs:
+    Returns: An array of vary_node linked lists
+    In order to set the knobs for animation, we need to keep
+    a seaprate value for each knob for each frame. We can do
+    this by using an array of linked lists. Each array index
+    will correspond to a frame (eg. knobs[0] would be the first
+    frame, knobs[2] would be the 3rd frame and so on).
+    Each index should contain a linked list of vary_nodes, each
+    node contains a knob name, a value, and a pointer to the
+    next node.
+    Go through the opcode array, and when you find vary, go
+    from knobs[0] to knobs[frames-1] and add (or modify) the
+    vary_node corresponding to the given knob with the
+    appropirate value.
+  ====================*/
+struct vary_node ** second_pass() {
+    struct vary_node *curr = NULL;
+    struct vary_node **knobs;
+    knobs = (struct vary_node **)calloc(num_frames, sizeof(struct vary_node *));
+
+
+    return knobs;
+}
+
 void my_main() {
+    // Animation Variables
+    struct vary_node ** knobs;
+    struct vary_node * vn;
+    first_pass();
+    knobs = second_pass();
+    char frame_name[128];
+    int f;
 	screen s;
 	zbuffer zb;
 
@@ -48,6 +100,7 @@ void my_main() {
 	temp = new_matrix(4, 1000);
 	systems = new_stack();
 
+    // Line Color
 	color cline;
 	cline.red = 0;
 	cline.green = 0;
@@ -100,317 +153,316 @@ void my_main() {
 
 	for (int i = 0; i < lastop; i++) {
 		printf("%d: ", i);
-        switch (op[i].opcode)
-        {
-        case LIGHT:
-            printf("Light: %s at: %6.2f %6.2f %6.2f",
-                   op[i].op.light.p -> name,
-                   op[i].op.light.c[0], op[i].op.light.c[1],
-                   op[i].op.light.c[2]);
-            break;
+        switch (op[i].opcode) {
+            case LIGHT:
+                printf("Light: %s at: %6.2f %6.2f %6.2f",
+                    op[i].op.light.p -> name,
+                    op[i].op.light.c[0], op[i].op.light.c[1],
+                    op[i].op.light.c[2]);
+                break;
 
-        case AMBIENT:
-            printf("Ambient: %6.2f %6.2f %6.2f",
-                   op[i].op.ambient.c[0],
-                   op[i].op.ambient.c[1],
-                   op[i].op.ambient.c[2]);
-            break;
+            case AMBIENT:
+                printf("Ambient: %6.2f %6.2f %6.2f",
+                    op[i].op.ambient.c[0],
+                    op[i].op.ambient.c[1],
+                    op[i].op.ambient.c[2]);
+                break;
 
-		case CONSTANTS:
-            printf("Constants: %s", op[i].op.constants.p -> name);
-            break;
-		
-        case SAVE_COORDS:
-            printf("Save Coords: %s", op[i].op.save_coordinate_system.p -> name);
-            break;
-
-        case CAMERA:
-            printf("Camera: eye: %6.2f %6.2f %6.2f\taim: %6.2f %6.2f %6.2f",
-                   op[i].op.camera.eye[0], op[i].op.camera.eye[1],
-                   op[i].op.camera.eye[2],
-                   op[i].op.camera.aim[0], op[i].op.camera.aim[1],
-                   op[i].op.camera.aim[2]);
-
-            break;
-
-        case SPHERE: {
-			double cx = op[i].op.sphere.d[0];
-			double cy = op[i].op.sphere.d[1];
-			double cz = op[i].op.sphere.d[2];
-			double r = op[i].op.sphere.r;
-			SYMTAB * symbols = op[i].op.sphere.constants;
-
-			add_sphere(temp, cx, cy, cz, r, polystep);
-			struct matrix * matrix = peek(systems);
-            matrix_mult(matrix, temp);
-
-            printf("Sphere: %6.2f %6.2f %6.2f r = %6.2f",
-                	cx, cy, cz, r);
-
-            if (symbols != NULL) {
-                printf("\tconstants: %s", symbols -> name);
-
-				draw_polygons(temp, s, zb, view, light, cline, symbols -> s.c);
-            }
-			else {
-				draw_polygons(temp, s, zb, view, light, ambient, reflect);
-			}
-
-            if (op[i].op.sphere.cs != NULL) {
-                printf("\tcs: %s", op[i].op.sphere.cs -> name);
-            }
-
-			temp -> lastcol = 0;
-            break;
-		}
-
-        case TORUS: {
-			double cx = op[i].op.torus.d[0];
-			double cy = op[i].op.torus.d[1];
-			double cz = op[i].op.torus.d[2];
-			double r0 = op[i].op.torus.r0;
-			double r1 = op[i].op.torus.r1;
-			SYMTAB * symbols = op[i].op.torus.constants;
-
-			add_torus(temp, cx, cy, cz, r0, r1, polystep);
-			struct matrix * matrix = peek(systems);
-            matrix_mult(matrix, temp);
-			
-            printf("Torus: %6.2f %6.2f %6.2f r0 = %6.2f r1 = %6.2f",
-                	cx, cy, cz, r0, r1);
-
-			if (symbols != NULL) {
-                printf("\tconstants: %s", symbols -> name);
-
-				draw_polygons(temp, s, zb, view, light, ambient, symbols -> s.c);
-            }
-			else {
-				draw_polygons(temp, s, zb, view, light, ambient, reflect);
-			}
-
-			if (op[i].op.torus.cs != NULL) {
-                printf("\tcs: %s", op[i].op.torus.cs -> name);
-            }
-
-			temp -> lastcol = 0;
-            break;
-		}
-
-        case BOX: {
-			double x = op[i].op.box.d0[0];
-			double y = op[i].op.box.d0[1];
-			double z = op[i].op.box.d0[2];
-			double width = op[i].op.box.d1[0];
-			double height = op[i].op.box.d1[1];
-			double depth = op[i].op.box.d1[2];
-			SYMTAB * symbols = op[i].op.box.constants;
-
-			add_box(temp, x, y, z, width, height, depth);
-			struct matrix * matrix = peek(systems);
-            matrix_mult(matrix, temp);
-
-            printf("Box: d0: %6.2f %6.2f %6.2f d1: %6.2f %6.2f %6.2f",
-                	x, y, z, width, height, depth);
-
-            if (symbols != NULL) {
-                printf("\tconstants: %s", symbols -> name);
-
-				draw_polygons(temp, s, zb, view, light, ambient, symbols -> s.c);
-            }
-			else {
-				draw_polygons(temp, s, zb, view, light, ambient, reflect);
-			}
-
-            if (op[i].op.box.cs != NULL) {
-                printf("\tcs: %s", op[i].op.box.cs -> name);
-            }
-
-			temp -> lastcol = 0;
-            break;
-		}
-
-        case LINE: {
-			double x0 = op[i].op.line.p0[0];
-			double y0 = op[i].op.line.p0[1];
-			double z0 = op[i].op.line.p0[2];
-			double x1 = op[i].op.line.p1[0];
-			double y1 = op[i].op.line.p1[1];
-			double z1 = op[i].op.line.p1[2];
-			SYMTAB * symbols = op[i].op.line.constants;
-
-            printf("Line: from: %6.2f %6.2f %6.2f to: %6.2f %6.2f %6.2f",
-                	x0, y0, z0, x1, y1, z1);
-            if (symbols != NULL) {
-                printf("\n\tConstants: %s", symbols -> name);
-            }
-            if (op[i].op.line.cs0 != NULL) {
-                printf("\n\tCS0: %s", op[i].op.line.cs0 -> name);
-            }
-            if (op[i].op.line.cs1 != NULL) {
-                printf("\n\tCS1: %s", op[i].op.line.cs1 -> name);
-            }
-
-			add_edge(temp, x0, y0, z0, x1, y1, z1);
-
-			struct matrix * matrix = peek(systems);
-            matrix_mult(matrix, temp);
-
-			draw_lines(temp, s, zb, cline);
+            case CONSTANTS:
+                printf("Constants: %s", op[i].op.constants.p -> name);
+                break;
             
-			temp -> lastcol = 0;
-            break;
-		}
-		
-        case MESH:
-            printf("Mesh: filename: %s", op[i].op.mesh.name);
-            if (op[i].op.mesh.constants != NULL)
-            {
-                printf("\tconstants: %s", op[i].op.mesh.constants -> name);
-            }
-            break;
+            case SAVE_COORDS:
+                printf("Save Coords: %s", op[i].op.save_coordinate_system.p -> name);
+                break;
 
-        case SET:
-            printf("Set: %s %6.2f",
-                   op[i].op.set.p -> name,
-                   op[i].op.set.p -> s.value);
-            break;
+            case CAMERA:
+                printf("Camera: eye: %6.2f %6.2f %6.2f\taim: %6.2f %6.2f %6.2f",
+                    op[i].op.camera.eye[0], op[i].op.camera.eye[1],
+                    op[i].op.camera.eye[2],
+                    op[i].op.camera.aim[0], op[i].op.camera.aim[1],
+                    op[i].op.camera.aim[2]);
 
-        case MOVE: {
-			double x = op[i].op.move.d[0];
-			double y = op[i].op.move.d[1];
-			double z = op[i].op.move.d[2];
-			SYMTAB * symbols = op[i].op.move.p;
+                break;
 
-            printf("Move: %6.2f %6.2f %6.2f", x, y, z);
-            if (symbols != NULL) {
-                printf("\tknob: %s", symbols -> name);
-            }
+            case SPHERE: {
+                double cx = op[i].op.sphere.d[0];
+                double cy = op[i].op.sphere.d[1];
+                double cz = op[i].op.sphere.d[2];
+                double r = op[i].op.sphere.r;
+                SYMTAB * symbols = op[i].op.sphere.constants;
 
-			temp = make_translate(x, y, z);
-            struct matrix * matrix = peek(systems);
-            matrix_mult(matrix, temp);
-            copy_matrix(temp, matrix);
+                add_sphere(temp, cx, cy, cz, r, polystep);
+                struct matrix * matrix = peek(systems);
+                matrix_mult(matrix, temp);
 
-			temp -> lastcol = 0;
-            break;
-		}
+                printf("Sphere: %6.2f %6.2f %6.2f r = %6.2f",
+                        cx, cy, cz, r);
 
-        case SCALE: {
-			double x = op[i].op.scale.d[0];
-			double y = op[i].op.scale.d[1];
-			double z = op[i].op.scale.d[2];
-			SYMTAB * symbols = op[i].op.scale.p;
+                if (symbols != NULL) {
+                    printf("\tconstants: %s", symbols -> name);
 
-            printf("Scale: %6.2f %6.2f %6.2f", x, y, z);
-            if (symbols != NULL) {
-                printf("\tknob: %s", symbols-> name);
+                    draw_polygons(temp, s, zb, view, light, ambient, symbols -> s.c);
+                }
+                else {
+                    draw_polygons(temp, s, zb, view, light, ambient, reflect);
+                }
+
+                if (op[i].op.sphere.cs != NULL) {
+                    printf("\tcs: %s", op[i].op.sphere.cs -> name);
+                }
+
+                temp -> lastcol = 0;
+                break;
             }
 
-			temp = make_scale(x, y, z);
-            struct matrix * matrix = peek(systems);
-            matrix_mult(matrix, temp);
-            copy_matrix(temp, matrix);
+            case TORUS: {
+                double cx = op[i].op.torus.d[0];
+                double cy = op[i].op.torus.d[1];
+                double cz = op[i].op.torus.d[2];
+                double r0 = op[i].op.torus.r0;
+                double r1 = op[i].op.torus.r1;
+                SYMTAB * symbols = op[i].op.torus.constants;
 
-			temp -> lastcol = 0;
-            break;
-		}
+                add_torus(temp, cx, cy, cz, r0, r1, polystep);
+                struct matrix * matrix = peek(systems);
+                matrix_mult(matrix, temp);
+                
+                printf("Torus: %6.2f %6.2f %6.2f r0 = %6.2f r1 = %6.2f",
+                        cx, cy, cz, r0, r1);
 
-        case ROTATE: {
-			double axis = op[i].op.rotate.axis;
-			double angle = op[i].op.rotate.degrees;
-			double rad = angle * M_PI / 180;
-			SYMTAB * symbols = op[i].op.rotate.p;
+                if (symbols != NULL) {
+                    printf("\tconstants: %s", symbols -> name);
 
-            printf("Rotate: axis: %6.2f degrees: %6.2f", axis, angle);
-            if (symbols != NULL) {
-                printf("\tknob: %s", symbols -> name);
+                    draw_polygons(temp, s, zb, view, light, ambient, symbols -> s.c);
+                }
+                else {
+                    draw_polygons(temp, s, zb, view, light, ambient, reflect);
+                }
+
+                if (op[i].op.torus.cs != NULL) {
+                    printf("\tcs: %s", op[i].op.torus.cs -> name);
+                }
+
+                temp -> lastcol = 0;
+                break;
             }
 
-			if (axis == 0) temp = make_rotX(rad);
-			else if (axis == 1) temp = make_rotY(rad);
-			else if (axis == 2) temp = make_rotZ(rad);
+            case BOX: {
+                double x = op[i].op.box.d0[0];
+                double y = op[i].op.box.d0[1];
+                double z = op[i].op.box.d0[2];
+                double width = op[i].op.box.d1[0];
+                double height = op[i].op.box.d1[1];
+                double depth = op[i].op.box.d1[2];
+                SYMTAB * symbols = op[i].op.box.constants;
 
-			struct matrix * matrix = peek(systems);
-            matrix_mult(matrix, temp);
-            copy_matrix(temp, matrix);
+                add_box(temp, x, y, z, width, height, depth);
+                struct matrix * matrix = peek(systems);
+                matrix_mult(matrix, temp);
 
-			temp -> lastcol = 0;
-            break;
-		}
+                printf("Box: d0: %6.2f %6.2f %6.2f d1: %6.2f %6.2f %6.2f",
+                        x, y, z, width, height, depth);
 
-        case BASENAME:
-            printf("Basename: %s", op[i].op.basename.p -> name);
-            break;
+                if (symbols != NULL) {
+                    printf("\tconstants: %s", symbols -> name);
 
-        case SAVE_KNOBS:
-            printf("Save knobs: %s", op[i].op.save_knobs.p -> name);
-            break;
+                    draw_polygons(temp, s, zb, view, light, ambient, symbols -> s.c);
+                }
+                else {
+                    draw_polygons(temp, s, zb, view, light, ambient, reflect);
+                }
 
-        case TWEEN:
-            printf("Tween: %4.0f %4.0f, %s %s",
-                   op[i].op.tween.start_frame,
-                   op[i].op.tween.end_frame,
-                   op[i].op.tween.knob_list0 -> name,
-                   op[i].op.tween.knob_list1 -> name);
-            break;
+                if (op[i].op.box.cs != NULL) {
+                    printf("\tcs: %s", op[i].op.box.cs -> name);
+                }
 
-        case FRAMES:
-            printf("Num frames: %4.0f", op[i].op.frames.num_frames);
-            break;
+                temp -> lastcol = 0;
+                break;
+            }
 
-        case VARY:
-            printf("Vary: %4.0f %4.0f, %4.0f %4.0f",
-                   op[i].op.vary.start_frame,
-                   op[i].op.vary.end_frame,
-                   op[i].op.vary.start_val,
-                   op[i].op.vary.end_val);
-            break;
+            case LINE: {
+                double x0 = op[i].op.line.p0[0];
+                double y0 = op[i].op.line.p0[1];
+                double z0 = op[i].op.line.p0[2];
+                double x1 = op[i].op.line.p1[0];
+                double y1 = op[i].op.line.p1[1];
+                double z1 = op[i].op.line.p1[2];
+                SYMTAB * symbols = op[i].op.line.constants;
 
-        case PUSH:
-            printf("Push");
+                printf("Line: from: %6.2f %6.2f %6.2f to: %6.2f %6.2f %6.2f",
+                        x0, y0, z0, x1, y1, z1);
+                if (symbols != NULL) {
+                    printf("\n\tConstants: %s", symbols -> name);
+                }
+                if (op[i].op.line.cs0 != NULL) {
+                    printf("\n\tCS0: %s", op[i].op.line.cs0 -> name);
+                }
+                if (op[i].op.line.cs1 != NULL) {
+                    printf("\n\tCS1: %s", op[i].op.line.cs1 -> name);
+                }
 
-			push(systems);
+                add_edge(temp, x0, y0, z0, x1, y1, z1);
 
-            break;
+                struct matrix * matrix = peek(systems);
+                matrix_mult(matrix, temp);
 
-        case POP:
-            printf("Pop");
+                draw_lines(temp, s, zb, cline);
+                
+                temp -> lastcol = 0;
+                break;
+            }
+            
+            case MESH:
+                printf("Mesh: filename: %s", op[i].op.mesh.name);
+                if (op[i].op.mesh.constants != NULL)
+                {
+                    printf("\tconstants: %s", op[i].op.mesh.constants -> name);
+                }
+                break;
 
-			pop(systems);
+            case SET:
+                printf("Set: %s %6.2f",
+                    op[i].op.set.p -> name,
+                    op[i].op.set.p -> s.value);
+                break;
 
-            break;
+            case MOVE: {
+                double x = op[i].op.move.d[0];
+                double y = op[i].op.move.d[1];
+                double z = op[i].op.move.d[2];
+                SYMTAB * symbols = op[i].op.move.p;
 
-        case GENERATE_RAYFILES:
-            printf("Generate Ray Files");
-            break;
+                printf("Move: %6.2f %6.2f %6.2f", x, y, z);
+                if (symbols != NULL) {
+                    printf("\tknob: %s", symbols -> name);
+                }
 
-        case SAVE: {
-			char * name = op[i].op.save.p -> name;
+                temp = make_translate(x, y, z);
+                struct matrix * matrix = peek(systems);
+                matrix_mult(matrix, temp);
+                copy_matrix(temp, matrix);
 
-            printf("Save: %s", name);
-			save_extension(s, name);
+                temp -> lastcol = 0;
+                break;
+            }
 
-            break;
-		}
+            case SCALE: {
+                double x = op[i].op.scale.d[0];
+                double y = op[i].op.scale.d[1];
+                double z = op[i].op.scale.d[2];
+                SYMTAB * symbols = op[i].op.scale.p;
 
-        case SHADING:
-            printf("Shading: %s", op[i].op.shading.p -> name);
-            break;
+                printf("Scale: %6.2f %6.2f %6.2f", x, y, z);
+                if (symbols != NULL) {
+                    printf("\tknob: %s", symbols-> name);
+                }
 
-        case SETKNOBS:
-            printf("Setknobs: %f", op[i].op.setknobs.value);
-            break;
+                temp = make_scale(x, y, z);
+                struct matrix * matrix = peek(systems);
+                matrix_mult(matrix, temp);
+                copy_matrix(temp, matrix);
 
-        case FOCAL:
-            printf("Focal: %f", op[i].op.focal.value);
-            break;
+                temp -> lastcol = 0;
+                break;
+            }
 
-        case DISPLAY:
-            printf("Display");
+            case ROTATE: {
+                double axis = op[i].op.rotate.axis;
+                double angle = op[i].op.rotate.degrees;
+                double rad = angle * M_PI / 180;
+                SYMTAB * symbols = op[i].op.rotate.p;
 
-			display(s);
+                printf("Rotate: axis: %6.2f degrees: %6.2f", axis, angle);
+                if (symbols != NULL) {
+                    printf("\tknob: %s", symbols -> name);
+                }
 
-            break;
+                if (axis == 0) temp = make_rotX(rad);
+                else if (axis == 1) temp = make_rotY(rad);
+                else if (axis == 2) temp = make_rotZ(rad);
+
+                struct matrix * matrix = peek(systems);
+                matrix_mult(matrix, temp);
+                copy_matrix(temp, matrix);
+
+                temp -> lastcol = 0;
+                break;
+            }
+
+            case BASENAME:
+                printf("Basename: %s", op[i].op.basename.p -> name);
+                break;
+
+            case SAVE_KNOBS:
+                printf("Save knobs: %s", op[i].op.save_knobs.p -> name);
+                break;
+
+            case TWEEN:
+                printf("Tween: %4.0f %4.0f, %s %s",
+                    op[i].op.tween.start_frame,
+                    op[i].op.tween.end_frame,
+                    op[i].op.tween.knob_list0 -> name,
+                    op[i].op.tween.knob_list1 -> name);
+                break;
+
+            case FRAMES:
+                printf("Num frames: %4.0f", op[i].op.frames.num_frames);
+                break;
+
+            case VARY:
+                printf("Vary: %4.0f %4.0f, %4.0f %4.0f",
+                    op[i].op.vary.start_frame,
+                    op[i].op.vary.end_frame,
+                    op[i].op.vary.start_val,
+                    op[i].op.vary.end_val);
+                break;
+
+            case PUSH:
+                printf("Push");
+
+                push(systems);
+
+                break;
+
+            case POP:
+                printf("Pop");
+
+                pop(systems);
+
+                break;
+
+            case GENERATE_RAYFILES:
+                printf("Generate Ray Files");
+                break;
+
+            case SAVE: {
+                char * name = op[i].op.save.p -> name;
+
+                printf("Save: %s", name);
+                save_extension(s, name);
+
+                break;
+            }
+
+            case SHADING:
+                printf("Shading: %s", op[i].op.shading.p -> name);
+                break;
+
+            case SETKNOBS:
+                printf("Setknobs: %f", op[i].op.setknobs.value);
+                break;
+
+            case FOCAL:
+                printf("Focal: %f", op[i].op.focal.value);
+                break;
+
+            case DISPLAY:
+                printf("Display");
+
+			    display(s);
+
+                break;
         }
 
         printf("\n");
